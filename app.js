@@ -48,6 +48,68 @@ window.addEventListener("load", function() {
   const editor = function($router, blob) {
     const reader = new FileReader();
     reader.onload = () => {
+      $router.push(
+        new Kai({
+          name: 'editor',
+          data: {
+            title: 'editor'
+          },
+          verticalNavClass: '.editorNav',
+          template: `
+            <div class="kui-flex-wrap">
+              <div class="kai-container">
+                <textarea id="editorInput" class="editorNav" style="font-size:80%;width:240px;height:236px;border:0px;border:1px solid #c0c0c0;box-sizing:border-box;">${reader.result}</textarea>
+              </div>
+            </div>
+          `,
+          mounted: function() {
+            this.$router.setHeaderTitle('Editor');
+            const box = document.getElementById('editorInput');
+            box.focus();
+            box.setSelectionRange(box.value.length, box.value.length);
+          },
+          unmounted: function() {},
+          methods: {},
+          softKeyText: { left: '', center: '', right: '' },
+          softKeyListener: {
+            left: function() {},
+            center: function() {},
+            right: function() {}
+          },
+          softKeyInputFocusText: { left: '-', center: 'CALL', right: '+' },
+          softKeyInputFocusListener: {
+            left: function() {
+              const box = document.getElementById('editorInput');
+              console.log(box.style.fontSize);
+              box.style.fontSize = `${parseInt(box.style.fontSize) - 1}%`;
+            },
+            center: function() {},
+            right: function() {
+              const box = document.getElementById('editorInput');
+              console.log(box.style.fontSize);
+              box.style.fontSize = `${parseInt(box.style.fontSize) + 1}%`;
+            }
+          },
+          dPadNavListener: {
+            arrowUp: function() {
+              document.getElementById('editorInput').focus();
+            },
+            arrowDown: function() {
+              document.getElementById('editorInput').focus();
+            },
+          },
+        })
+      );
+    };
+    reader.onerror = (err) => {
+      console.log(err);
+    };
+    reader.readAsText(blob);
+  }
+
+  const execute = function($router, blob) {
+    const reader = new FileReader();
+    reader.onload = () => {
       if (blob.type === 'application/javascript' || blob.type === 'application/x-javascript' || blob.type === 'text/html') {
         var httpServer = new HTTPServer(8090);
         window['httpServer'] = httpServer;
@@ -59,7 +121,7 @@ window.addEventListener("load", function() {
             <head>
             <title>Console.log Output</title>
             </head>
-            <body>
+            <body style="background-color:#000;color:#fff;">
             <div id="output"></div>
             <script>
               try {
@@ -78,6 +140,7 @@ window.addEventListener("load", function() {
                   }
                 };
                 var exec = ${reader.result};
+                eval(exec);
               } catch(e) {
                 console.log(e.toString());
               }
@@ -94,12 +157,17 @@ window.addEventListener("load", function() {
             if (KAIOS_BROWSER.closed) {
               httpServer.stop();
             }
-          },100);
+          }, 100);
         } catch(e) {
           console.log(e);
         }
       } else {
-        window.open(URL.createObjectURL(blob));
+        var KAIOS_BROWSER = window.open(URL.createObjectURL(blob));
+        setInterval(() => {
+          if (KAIOS_BROWSER.closed) {
+            httpServer.stop();
+          }
+        }, 100);
       }
     };
     reader.onerror = (err) => {
@@ -294,6 +362,7 @@ window.addEventListener("load", function() {
           }
           DS.getFile(file.path, (blob) => {
             editor(this.$router, blob);
+            // execute(this.$router, blob);
           }, (err) => {
             this.$router.showToast(err.toString());
           })
