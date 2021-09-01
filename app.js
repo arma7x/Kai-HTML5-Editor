@@ -113,7 +113,10 @@ window.addEventListener("load", function() {
                     }, 100);
                   }
                 }, () => {
-                  
+                  setTimeout(() => {
+                    const current = $router.stack[$router.stack.length - 1];
+                    current.dPadNavListener.arrowDown();
+                  }, 100);
                 });
               }
             }
