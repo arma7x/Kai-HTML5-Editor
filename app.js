@@ -100,6 +100,8 @@ window.addEventListener("load", function() {
                     })
                     .then(() => {
                       $router.showToast('Saved');
+                      const current = $router.stack[$router.stack.length - 1];
+                      current.dPadNavListener.arrowDown();
                     })
                     .catch((err) => {
                       $router.showToast(err.toString());
