@@ -52,24 +52,70 @@ window.addEventListener("load", function() {
         new Kai({
           name: 'editor',
           data: {
-            title: 'editor'
+            title: 'editor',
+            code: reader.result.trim(),
           },
           verticalNavClass: '.editorNav',
-          template: `
-            <div class="kui-flex-wrap">
-              <div class="kai-container">
-                <textarea id="editorInput" class="editorNav" style="font-size:80%;width:240px;height:236px;border:0px;border:1px solid #c0c0c0;box-sizing:border-box;">${reader.result}</textarea>
-              </div>
-            </div>
-          `,
+          templateUrl: document.location.origin + '/templates/editor.html',
           mounted: function() {
             this.$router.setHeaderTitle('Editor');
             const box = document.getElementById('editorInput');
             box.focus();
             box.setSelectionRange(box.value.length, box.value.length);
+            box.addEventListener('keydown', this.methods.inputKeyDownListener);
           },
-          unmounted: function() {},
-          methods: {},
+          unmounted: function() {
+            const box = document.getElementById('editorInput');
+            box.removeEventListener('keydown', this.methods.inputKeyDownListener);
+          },
+          methods: {
+            inputKeyDownListener: function(evt) {
+              if (evt.key === 'Call') {
+                var menu = [
+                  {'text': 'Save'},
+                  {'text': 'Execute'},
+                  {'text': 'Exit'},
+                ]
+                $router.showOptionMenu('Menu', menu, 'SELECT', (selected) => {
+                  if (selected.text === 'Execute') {
+                    const _blob = new Blob([document.getElementById('editorInput').value.trim()], {type : blob.type});
+                    execute($router, _blob);
+                  } else if (selected.text === 'Save') {
+                    var DS;
+                    if (window['__DS__']) {
+                      DS = window['__DS__'];
+                    } else {
+                      DS = new DataStorage(() => {}, () => {}, false);
+                    }
+                    const paths = blob.name.split('/');
+                    if (paths.length > 1 && paths[0] === '') {
+                      paths.splice(0,1);
+                      DS.trailingSlash = '/';
+                    }
+                    const name = paths.pop();
+                    DS.deleteFile([...paths], name, true)
+                    .then(() => {
+                      const _blob = new Blob([document.getElementById('editorInput').value.trim()], {type : blob.type});
+                      return  DS.addFile([...paths], name, _blob);
+                    })
+                    .then(() => {
+                      $router.showToast('Saved');
+                    })
+                    .catch((err) => {
+                      $router.showToast(err.toString());
+                    });
+                  } else if (selected.text === 'Exit') {
+                    setTimeout(() => {
+                      document.activeElement.blur();
+                      $router.pop();
+                    }, 100);
+                  }
+                }, () => {
+                  
+                });
+              }
+            }
+          },
           softKeyText: { left: '', center: '', right: '' },
           softKeyListener: {
             left: function() {},
@@ -81,13 +127,13 @@ window.addEventListener("load", function() {
             left: function() {
               const box = document.getElementById('editorInput');
               console.log(box.style.fontSize);
-              box.style.fontSize = `${parseInt(box.style.fontSize) - 1}%`;
+              box.style.fontSize = `${parseInt(box.style.fontSize) - 2}%`;
             },
             center: function() {},
             right: function() {
               const box = document.getElementById('editorInput');
               console.log(box.style.fontSize);
-              box.style.fontSize = `${parseInt(box.style.fontSize) + 1}%`;
+              box.style.fontSize = `${parseInt(box.style.fontSize) + 2}%`;
             }
           },
           dPadNavListener: {
@@ -111,18 +157,23 @@ window.addEventListener("load", function() {
     const reader = new FileReader();
     reader.onload = () => {
       if (blob.type === 'application/javascript' || blob.type === 'application/x-javascript' || blob.type === 'text/html') {
+        const safe = escape(reader.result);
         var httpServer = new HTTPServer(8090);
         window['httpServer'] = httpServer;
         httpServer.addEventListener('request', (evt) => {
           var request  = evt.request;
           var response = evt.response;
+          if (request.path !== "/index.html") {
+            response.send('', 400);
+            return;
+          }
           var HTML = blob.type === 'text/html' ? reader.result : `<!DOCTYPE html>
             <html>
             <head>
             <title>Console.log Output</title>
             </head>
-            <body style="background-color:#000;color:#fff;">
-            <div id="output"></div>
+            <body style="background-color:#000;color:#fff;font-size:80%;margin:0px;padding:0px;">
+            <div id="output" style="margin:0px;padding:2px;"></div>
             <script>
               try {
                 console.log = function(value) {
@@ -139,8 +190,8 @@ window.addEventListener("load", function() {
                     }
                   }
                 };
-                var exec = ${reader.result};
-                eval(exec);
+                var exec = "${safe}";
+                eval(unescape(exec));
               } catch(e) {
                 console.log(e.toString());
               }
@@ -152,10 +203,13 @@ window.addEventListener("load", function() {
         });
         try {
           httpServer.start();
-          var KAIOS_BROWSER = window.open('http://127.0.0.1:8090/');
-          setInterval(() => {
+          var KAIOS_BROWSER = window.open('http://127.0.0.1:8090/index.html');
+          var TIMER = setInterval(() => {
             if (KAIOS_BROWSER.closed) {
+              clearInterval(TIMER);
               httpServer.stop();
+              const current = $router.stack[$router.stack.length - 1];
+              current.dPadNavListener.arrowDown();
             }
           }, 100);
         } catch(e) {
@@ -163,9 +217,12 @@ window.addEventListener("load", function() {
         }
       } else {
         var KAIOS_BROWSER = window.open(URL.createObjectURL(blob));
-        setInterval(() => {
+        var TIMER = setInterval(() => {
           if (KAIOS_BROWSER.closed) {
+            clearInterval(TIMER);
             httpServer.stop();
+            const current = $router.stack[$router.stack.length - 1];
+            current.dPadNavListener.arrowDown();
           }
         }, 100);
       }
@@ -226,6 +283,10 @@ window.addEventListener("load", function() {
     methods: {
       selected: function() {},
       onChange: function(fileRegistry, documentTree, groups) {
+        const current = this.$router.stack[this.$router.stack.length - 1].name;
+        if (current !== 'home') {
+          return
+        }
         var files = [];
         if (groups['application']) {
           files = [...files, ...groups['application']]
@@ -291,6 +352,9 @@ window.addEventListener("load", function() {
         this.$router.showOptionMenu('Menu', menu, 'SELECT', (selected) => {
           if (selected.text === 'Reload Library') {
             this.verticalNavIndex = -1;
+            if (window['__DS__']) {
+              window['__DS__'].destroy();
+            }
             window['__DS__'] = new DataStorage(this.methods.onChange, this.methods.onReady);
           } else if (selected.text === 'Help & Support') {
             this.$router.push('helpSupportPage');
