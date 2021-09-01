@@ -270,6 +270,11 @@ window.addEventListener("load", function() {
                   const _vid = hashids2.encode(1);
                   file.id = _vid;
                 }
+                if (file.location == null) {
+                  const _paths = file.path.split('/');
+                  _paths.pop();
+                  file.location = _paths.length === 0 ? 'root' : _paths.join('/');
+                }
                 if (file.src == null) {
                   file.src = '/icons/icon.png';
                 }
@@ -319,7 +324,8 @@ window.addEventListener("load", function() {
             if (['js', 'html', 'txt' , 'md'].indexOf(ext) > -1) {
               const hashids2 = new Hashids(file, 15);
               const _vid = hashids2.encode(1);
-              files.push({'name': n1, 'path': file, id: _vid, src: `/img/${ext}.png`});
+              n.pop();
+              files.push({ 'name': n1, 'path': file, id: _vid, src: `/img/${ext}.png`, location: (n.length === 0 ? 'root' : n.join('/')) });
             }
           }
         });
