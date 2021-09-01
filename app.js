@@ -1,5 +1,19 @@
 const APP_VERSION = '1.0.0';
 
+const MIMES = [
+  {'text': 'Javascript', mime: 'application/x-javascript', ext: 'js', template: `console.log('Hello World');`},
+  {'text': 'HTML', mime: 'text/html', ext: 'html', template: `<!DOCTYPE html>
+<html>
+  <title>TITLE</title>
+  <body>
+    <h1>This is a heading</h1>
+    <p>This is a paragraph.</p>
+  </body>
+</html>`},
+  {'text': 'Text', mime: 'text/plain', ext: 'txt', template: `Hello World`},
+  {'text': 'Markdown', mime: 'text/markdown', ext: 'md', template: `# Hello World`},
+];
+
 window.addEventListener("load", function() {
 
   localforage.setDriver(localforage.LOCALSTORAGE);
@@ -357,6 +371,7 @@ window.addEventListener("load", function() {
         var menu = [
           {'text': 'Search'},
           {'text': 'Reload Library'},
+          {'text': 'Create a new file'},
           {'text': 'Changelogs'},
           {'text': 'Help & Support'},
         ]
@@ -422,6 +437,83 @@ window.addEventListener("load", function() {
               }
             }
             this.$router.showBottomSheet(searchDialog);
+          } else if (selected.text === 'Create a new file') {
+            setTimeout(() => {
+              var mimes = [...MIMES];
+              this.$router.showOptionMenu('MIME', mimes, 'SELECT', (selectedMime) => {
+                setTimeout(() => {
+                  const nameDialog = Kai.createDialog('Filename', '<div><input id="file-name" placeholder="Please enter filename" class="kui-input" type="text" /></div>', null, '', undefined, '', undefined, '', undefined, undefined, this.$router);
+                  nameDialog.mounted = () => {
+                    setTimeout(() => {
+                      setTimeout(() => {
+                        this.$router.setSoftKeyText('Cancel' , '', 'OK');
+                      }, 103);
+                      const NAME_INPUT = document.getElementById('file-name');
+                      if (!NAME_INPUT) {
+                        return;
+                      }
+                      NAME_INPUT.focus();
+                      NAME_INPUT.addEventListener('keydown', (evt) => {
+                        switch (evt.key) {
+                          case 'Backspace':
+                          case 'EndCall':
+                            if (document.activeElement.value.length === 0) {
+                              this.$router.hideBottomSheet();
+                              setTimeout(() => {
+                                NAME_INPUT.blur();
+                              }, 100);
+                            }
+                            break
+                          case 'SoftRight':
+                            this.$router.hideBottomSheet();
+                            setTimeout(() => {
+                              NAME_INPUT.blur();
+                              const _fn = NAME_INPUT.value.trim();
+                              if (_fn != '') {
+                                const _blob = new Blob([selectedMime.template.replace('TITLE', _fn)], {type : selectedMime.mime});
+                                path = `documents/${_fn}.${selectedMime.ext}`;
+                                const SDCARD = navigator.getDeviceStorage('sdcard');
+                                if (SDCARD.storageName !== '') {
+                                  path = `/${SDCARD.storageName}/${path}`;
+                                }
+                                const addFile = SDCARD.addNamed(_blob, path);
+                                addFile.onsuccess = (evt) => {
+                                  this.$router.showToast('Success');
+                                  if (window['__DS__']) {
+                                    window['__DS__'].destroy();
+                                  }
+                                  window['__DS__'] = new DataStorage(this.methods.onChange, this.methods.onReady);
+                                }
+                                addFile.onerror = (err) => {
+                                  this.$router.showToast('Error');
+                                }
+                              }
+                            }, 100);
+                            break
+                          case 'SoftLeft':
+                            this.$router.hideBottomSheet();
+                            setTimeout(() => {
+                              NAME_INPUT.blur();
+                            }, 100);
+                            break
+                        }
+                      });
+                    });
+                  }
+                  nameDialog.dPadNavListener = {
+                    arrowUp: function() {
+                      const NAME_INPUT = document.getElementById('file-name');
+                      NAME_INPUT.focus();
+                    },
+                    arrowDown: function() {
+                      const NAME_INPUT = document.getElementById('file-name');
+                      NAME_INPUT.focus();
+                    }
+                  }
+                  this.$router.showBottomSheet(nameDialog);
+                }, 100);
+              }, null);
+            }, 100);
           }
         }, null);
       },
