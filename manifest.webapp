@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "name": "HTML5 Editor",
-  "description": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can edit and view or execute the document/script via our application",
+  "description": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can create, edit and view or execute the document/script via our application",
   "launch_path": "/index.html",
   "theme": "#873eff",
   "theme_color": "#873eff",
@@ -31,8 +31,8 @@
   "locales": {
     "en-US": {
       "name": "HTML5 Editor",
-      "subtitle": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can edit and view or execute the document/script via our application",
-      "description": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can edit and view or execute the document/script via our application"
+      "subtitle": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can create, edit and view or execute the document/script via our application",
+      "description": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can create, edit and view or execute the document/script via our application"
     }
   },
   "default_locale": "en-US"
