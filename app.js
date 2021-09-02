@@ -87,13 +87,13 @@ window.addEventListener("load", function() {
               if (evt.key === 'Call') {
                 var menu = [
                   {'text': 'Save'},
-                  {'text': 'Execute'},
+                  {'text': blob.type === 'application/javascript' || blob.type === 'application/x-javascript' ? 'Execute' : 'Preview'},
                   {'text': 'Exit'},
                 ]
                 $router.showOptionMenu('Menu', menu, 'SELECT', (selected) => {
-                  if (selected.text === 'Execute') {
+                  if (selected.text === 'Execute' || selected.text === 'Preview') {
                     const _blob = new Blob([document.getElementById('editorInput').value.trim()], {type : blob.type});
-                    execute($router, _blob);
+                    execute($router, _blob, blob.name);
                   } else if (selected.text === 'Save') {
                     var DS;
                     if (window['__DS__']) {
@@ -172,7 +172,7 @@ window.addEventListener("load", function() {
     reader.readAsText(blob);
   }
 
-  const execute = function($router, blob) {
+  const execute = function($router, blob, name) {
     const reader = new FileReader();
     reader.onload = () => {
       if (blob.type === 'application/javascript' || blob.type === 'application/x-javascript' || blob.type === 'text/html') {
@@ -235,11 +235,29 @@ window.addEventListener("load", function() {
           console.log(e);
         }
       } else {
-        var KAIOS_BROWSER = window.open(URL.createObjectURL(blob));
+        const paths = name.split('/');
+        const names = paths[paths.length - 1].split('.');
+        if (names.length > 1 && names[names.length - 1] === 'md') {
+          const HTML = `<!DOCTYPE html><html><head><title>${paths[paths.length - 1]}</title></head><body style="font-size:80%;margin:0px;padding:2px;">${DOMPurify.sanitize(snarkdown(reader.result))}</body></html>`;
+          const _temp = new Blob([HTML], {type : 'text/html'});
+          const _url = URL.createObjectURL(_temp);
+          const KAIOS_BROWSER = window.open(_url);
+          var TIMER = setInterval(() => {
+            if (KAIOS_BROWSER.closed) {
+              clearInterval(TIMER);
+              URL.revokeObjectURL(_url);
+              const current = $router.stack[$router.stack.length - 1];
+              current.dPadNavListener.arrowDown();
+            }
+          }, 1000);
+          return
+        }
+        const _url = URL.createObjectURL(blob);
+        const KAIOS_BROWSER = window.open(_url);
         var TIMER = setInterval(() => {
           if (KAIOS_BROWSER.closed) {
             clearInterval(TIMER);
-            httpServer.stop();
+            URL.revokeObjectURL(_url);
             const current = $router.stack[$router.stack.length - 1];
             current.dPadNavListener.arrowDown();
           }
@@ -311,14 +329,7 @@ window.addEventListener("load", function() {
         if (current !== 'home') {
           return
         }
-        var files = [];
-        if (groups['application']) {
-          files = [...files, ...groups['application']]
-        }
-        if (groups['text']) {
-          files = [...files, ...groups['text']]
-        }
-        this.methods.runFilter(files);
+        this.methods.runFilter(fileRegistry || []);
       },
       onReady: function(status) {
         if (status) {

@@ -31,7 +31,8 @@
   "locales": {
     "en-US": {
       "name": "HTML5 Editor",
-      "subtitle": "HTML, TEXT, JS, MD"
+      "subtitle": "HTML, TEXT, JS, MD",
+      "description": "HTML, TEXT, JS, MD"
     }
   },
   "default_locale": "en-US"
