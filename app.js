@@ -568,7 +568,7 @@ window.addEventListener("load", function() {
   });
 
   const router = new KaiRouter({
-    title: 'K-Video Player',
+    title: 'HTML5 Editor',
     routes: {
       'index' : {
         name: 'homepage',

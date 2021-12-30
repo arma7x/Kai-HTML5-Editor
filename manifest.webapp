@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.2",
   "name": "HTML5 Editor",
   "description": "HTML5 Editor supports HTML, Text, Javascript and Markdown files. Users can create, edit and view or execute the document/script via our application",
   "launch_path": "/index.html",
